@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+
+
+import sys
+import numpy as np
+import rospy
+from rospy.numpy_msg import numpy_msg
+PKG = 'dinsdale_0_1'
+import roslib; roslib.load_manifest(PKG)
+from dinsdale.msg import Floats
+from dinsdale_system.read_matrix import *
+from dinsdale_system.plant import *
+
+
+# ----------------------------------------------------------------
+
+
+class PlantNode:
+    """ ROS wrapper for a Plant object """
+
+    def __init__(self, number):
+        """ Initialize ROS node """
+        
+        # Setup publishers
+        self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
+        self.pub_y = rospy.Publisher('~y', numpy_msg(Floats))
+        
+        # Setup subscribers
+        rospy.Subscriber('~w', numpy_msg(Floats), self.neighbour_data_received)
+        rospy.Subscriber('controller%s/u' % number, numpy_msg(Floats), self.controller_output_received)
+        
+        # Initialize plant
+        x0 = load_matrix_from_file('x0.txt')
+        x0 = x0[number, :].T
+        u0 = load_matrix_from_file('u0.txt')
+        u0 = u0[number, :].T
+        T = load_matrix_from_file('T.txt')
+        T = T[0, 0]
+        self.plant = Plant(number, x0, u0, T)
+        
+        # Publish initial data to other plants
+        rospy.sleep(1)
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
+
+    def controller_output_received(self, u):
+        """ Controller output u is received """
+        
+        # Save data
+        self.plant.u = np.mat(u.data).T
+        
+        
+    def neighbour_data_received(self, w):
+        """ Data w is received from neighbour plants """
+        
+        # Save data
+        self.plant.w = np.mat(w.data).T
+        
+        # Update plant state
+        self.plant.iterate_state()
+        
+        # Publish new data
+        self.pub_y.publish(np.reshape(np.array(self.plant.y, dtype = np.float32), self.plant.y.size))
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
+
+
+# ----------------------------------------------------------------
+
+
+def main(number):
+    """ Script entry point """
+    
+    rospy.init_node('plant%s' % (number))
+    node = PlantNode(number)
+    rospy.spin()
+
+
+if __name__ == '__main__':
+    number = int(sys.argv[1])
+    main(number)

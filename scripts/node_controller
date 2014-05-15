@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+
+from __future__ import division
+import sys
+import rospy
+from rospy.numpy_msg import numpy_msg
+PKG = 'dinsdale_0_1'
+import roslib; roslib.load_manifest(PKG)
+from dinsdale.msg import Floats
+from dinsdale_system.read_matrix import *
+from dinsdale_system.controller import *
+
+
+# ----------------------------------------------------------------
+
+
+class ControllerNode:
+    """ ROS wrapper for a Controller object """
+
+
+    def __init__(self, number):
+        """ Initialize ROS node """
+        
+        # Setup publishers
+        self.pub_u = rospy.Publisher('~u', numpy_msg(Floats))
+        self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
+        
+        # Setup subscribers
+        A = load_matrix_from_file('A_controllers.txt')
+        neighbours = [] # Maybe unnecessary
+        for i in range(A.shape[1]):
+            if A[number, i] and number != i:
+                neighbours.append(i) # Maybe unnecessary
+                rospy.Subscriber('controller%s/v' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
+        rospy.Subscriber('plant%s/y' % (number), numpy_msg(Floats), self.plant_output_received) 
+
+        # Initialize controller
+        self.controller = Controller(number)
+
+         
+    def plant_output_received(self, y):
+        """ Plant output y is received """
+        
+        # Save data
+        self.controller.y = np.mat(y.data).T
+        
+        # Update controller state
+        self.controller.iterate_state()
+        
+        # Publish new data
+        self.pub_u.publish(np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size))
+
+        
+    def neighbour_data_received(self, w, i):
+        """ Data w is received from controller i """
+        
+        pass
+        
+
+# ----------------------------------------------------------------
+
+
+def main(number):
+    """ Script entry point """
+    
+    rospy.init_node('controller%s' % (number))
+    node = ControllerNode(number)
+    rospy.spin()
+
+if __name__ == '__main__':
+    number = int(sys.argv[1])
+    main(number)

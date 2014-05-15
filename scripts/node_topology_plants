@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+
+import sys
+import numpy as np
+import numpy.matlib as npm
+import rospy
+from rospy.numpy_msg import numpy_msg
+PKG = 'dinsdale_0_1'
+import roslib; roslib.load_manifest(PKG)
+from std_msgs.msg import Int64 
+from dinsdale.msg import Floats
+from dinsdale_system.read_matrix import *
+from dinsdale_system.plants_topology import *
+
+
+# ----------------------------------------------------------------
+
+
+class PlantsTopologyNode:
+    """ ROS node that controls the plants communication topology """
+    
+    def __init__(self, dynamic_topology):
+        """ Initialize ROS node """
+        
+        # Setup publishers and subscribers
+        A = load_matrix_from_file('A_plants.txt')
+        self.nodes = A.shape[0]
+        self.pub = []
+        for i in range(self.nodes):
+            self.pub.append(rospy.Publisher('/plant%s/w' % i, numpy_msg(Floats)))
+            rospy.Subscriber('/plant%s/v' % i, numpy_msg(Floats), self.plant_data_received, i)
+        rospy.Subscriber('/simulation_time/tick', Int64, self.tack)
+            
+        # Initialize network topology node
+        if dynamic_topology:
+            self.node = DynamicPlantsTopology(A)
+        else:
+            self.node = StaticPlantsTopology(A)
+    
+    def plant_data_received(self, w, i):
+        """ Received data w from plant i """
+        
+        # Save data
+        if not self.node.w.size:
+            self.node.w = npm.zeros((self.nodes, w.data.size))
+        self.node.w[i, :] = w.data
+
+    def tack(self, t):
+        """ Response to a tick, begin new iteration """
+        
+        # Update topology if dynamic
+        self.node.update_topology()
+        
+        # Publish new data
+        n = 0
+        for neighbours in self.node.communication:
+            w_local = np.zeros(len(neighbours)*self.node.w.shape[1], dtype = np.float32)
+            count = 0
+            for j in neighbours:
+                w_local[count:(count + self.node.w.shape[1])] = self.node.w[j, :]
+                count += self.node.w.shape[1]
+            self.pub[n].publish(np.array(w_local, dtype = np.float32))
+            n += 1
+        
+    
+# ----------------------------------------------------------------
+
+
+def main(dynamic_topology = False):
+    """ Script entry point """
+    
+    rospy.init_node('plants_topology')
+    node = PlantsTopologyNode(dynamic_topology)
+    rospy.spin()
+
+
+if __name__ == '__main__':
+    try:
+        dynamic_topology = sys.argv[1]
+    except:
+        dynamic_topology = False
+    main(dynamic_topology)
