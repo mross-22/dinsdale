@@ -2,6 +2,7 @@
 
 
 from __future__ import division
+import os
 import sys
 import rospy
 from rospy.numpy_msg import numpy_msg
@@ -22,17 +23,18 @@ class ControllerNode:
     def __init__(self, number):
         """ Initialize ROS node """
         
-        # Setup publishers
+        # Setup subscribers and subscribers
         self.pub_u = rospy.Publisher('~u', numpy_msg(Floats))
-        self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
-        
-        # Setup subscribers
-        A = load_matrix_from_file('A_controllers.txt')
-        neighbours = [] # Maybe unnecessary
-        for i in range(A.shape[1]):
-            if A[number, i] and number != i:
-                neighbours.append(i) # Maybe unnecessary
-                rospy.Subscriber('controller%s/v' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
+        loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(loc, "src/dinsdale_system/input_parameters/A_controllers.txt")
+        A = load_matrix_from_file(path)
+        if A.size:
+            self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
+            neighbours = [] # Maybe unnecessary
+            for i in range(A.shape[1]):
+                if A[number, i] and number != i:
+                    neighbours.append(i) # Maybe unnecessary
+                    rospy.Subscriber('controller%s/v' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
         rospy.Subscriber('plant%s/y' % (number), numpy_msg(Floats), self.plant_output_received) 
 
         # Initialize controller

@@ -1,0 +1,3 @@
+- consider weights in plants_topology (static)
+- add communication between controllers
+- generation of .launch file with script
