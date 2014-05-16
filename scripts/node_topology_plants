@@ -8,7 +8,7 @@ import numpy as np
 import numpy.matlib as npm
 import rospy
 from rospy.numpy_msg import numpy_msg
-PKG = 'dinsdale_0_1'
+PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
 from std_msgs.msg import Int64 
 from dinsdale.msg import Floats

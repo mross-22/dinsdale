@@ -6,7 +6,7 @@ import os
 import sys
 import rospy
 from rospy.numpy_msg import numpy_msg
-PKG = 'dinsdale_0_1'
+PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
 from dinsdale.msg import Floats
 from dinsdale_system.read_matrix import *
@@ -55,8 +55,7 @@ class ControllerNode:
 
         
     def neighbour_data_received(self, w, i):
-        """ Data w is received from controller i """
-        
+        """ Data w is received from controller i """     
         pass
         
 

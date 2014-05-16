@@ -16,8 +16,20 @@ class Plant:
         self.T = T # Sampling period
         self.n = number # Node number
 
+        # ------------- Put your code here -------------
+        #
+        
+        #
+        # ----------------------------------------------
+
     def iterate_state(self):
         """ Update the plant state """
-        self.x = self.x + self.u
-        self.y = self.w
+        
+        # ------------- Put your code here -------------
+        #
+        self.x = self.x + self.u*self.T
+        self.y = np.concatenate((self.x, self.w))
         self.v = self.x
+
+        #
+        # ----------------------------------------------

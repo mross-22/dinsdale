@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import rospy
 from rospy.numpy_msg import numpy_msg
-PKG = 'dinsdale_0_1'
+PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
 from dinsdale.msg import Floats
 from dinsdale_system.read_matrix import *
@@ -29,7 +29,7 @@ class PlantNode:
         
         # Setup subscribers
         rospy.Subscriber('~w', numpy_msg(Floats), self.neighbour_data_received)
-        rospy.Subscriber('controller%s/u' % number, numpy_msg(Floats), self.controller_output_received)
+        rospy.Subscriber('controller%s/u' % number, numpy_msg(Floats), self.control_input_received)
         
         # Initialize plant
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
@@ -45,11 +45,11 @@ class PlantNode:
         self.plant = Plant(number, x0, u0, T)
         
         # Publish initial data to other plants
-        rospy.sleep(1)
+        rospy.sleep(2)
         self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
 
-    def controller_output_received(self, u):
-        """ Controller output u is received """
+    def control_input_received(self, u):
+        """ Control input u is received """
         
         # Save data
         self.plant.u = np.mat(u.data).T
