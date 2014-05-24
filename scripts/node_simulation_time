@@ -11,11 +11,12 @@ def main():
     pub_t = rospy.Publisher('~tick', Int64)
     loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
     path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")
-    T = load_matrix_from_file(path)
-    T = T[1, 0]
+    times = load_matrix_from_file(path)
+    T, T_final = times[1, 0], times[2, 0]
     r = rospy.Rate(1/T)
     i = 0
-    while not rospy.is_shutdown():
+    i_final = T_final/T
+    while not rospy.is_shutdown() or i >= i_final:
         pub_t.publish(i)
         i+= 1
         r.sleep()

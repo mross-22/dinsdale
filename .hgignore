@@ -2,3 +2,4 @@ syntax = glob
 
 src/dinsdale_system/test*
 src/dinsdale_system/*.pyc
+bags/*/*.bag
