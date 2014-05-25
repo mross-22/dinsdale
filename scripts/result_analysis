@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+
+"""
+Usage:
+  result_analysis [<dir>]
+"""
+
+
+from __future__ import division
+import sys
+import os
+import numpy as np
+import rosbag
+import docopt
+from dinsdale_system.result_analysis import *
+
+# ----------------------------------------------------------------
+
+
+class BagAnalysis:
+    """ Extracts data to plot from ROS bag """
+
+    def __init__(self, path):
+        """ Extract data and initialize Plot object """
+
+        # Find all bag files
+        file_list = os.listdir(path)
+        file_list = filter(lambda x: not os.path.isdir(os.path.join(path, x)), file_list)
+
+        # Initialize ResultAnalysis object
+        self.analysis = ResultAnalysis(len(file_list))
+
+        # Open each file and extract data
+        for b in file_list:
+            number = int(b.split('_')[-1].split('.')[0])
+            with rosbag.Bag(os.path.join(path, b)) as bag:
+                for topic, msg, t in bag.read_messages():
+                    self.analysis.data[topic[-1]][number].append(msg.data)
+
+
+    def analyze(self):
+        """ Start data analysis """
+        self.analysis.analyze()
+
+# ----------------------------------------------------------------
+
+
+def main(path = None):
+    if not path:
+        loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
+        dir_path = os.path.join(loc, 'bags')
+        dir_list = os.listdir(dir_path)
+        dir_list = filter(lambda x: os.path.isdir(os.path.join(dir_path, x)), dir_list)
+        dir_list.sort(reverse = True)
+        newest_dir = dir_list[0]
+        path = os.path.join(dir_path, newest_dir)
+    bagPlot = BagAnalysis(path)
+    bagPlot.analyze()
+
+if __name__ == '__main__':
+    arguments = docopt.docopt(__doc__)
+    main(arguments['<dir>'])

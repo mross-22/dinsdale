@@ -25,25 +25,25 @@ class ControllerNode:
     def __init__(self, number):
         """ Initialize ROS node """
 
-        # Setup subscribers and subscribers
+        # Setup publishers and subscribers
         self.pub_u = rospy.Publisher('~u', numpy_msg(Floats))
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/A_controllers.txt")
         A = load_matrix_from_file(path)
         if A.size:
-            self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
+            self.pub_v = rospy.Publisher('~g', numpy_msg(Floats))
             neighbours = [] # Maybe unnecessary
             for i in range(A.shape[1]):
                 if A[number, i] and number != i:
                     neighbours.append(i) # Maybe unnecessary
-                    rospy.Subscriber('controller%s/v' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
+                    rospy.Subscriber('controller%s/g' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
         rospy.Subscriber('plant%s/y' % (number), numpy_msg(Floats), self.plant_output_received)
 
         # Initialize controller
         self.controller = Controller(number)
 
         # Open bag to log data
-        bag_name = 'controller' + str(number) + '.bag'
+        bag_name = 'controller_' + str(number) + '.bag'
         dir_path = os.path.join(loc, 'bags')
         dir_list = os.listdir(dir_path)
         dir_list = filter(lambda x: os.path.isdir(os.path.join(dir_path, x)), dir_list)
@@ -70,7 +70,7 @@ class ControllerNode:
 
 
     def neighbour_data_received(self, w, i):
-        """ Data w is received from controller i """
+        """ Data z is received from controller i """
         pass
 
 

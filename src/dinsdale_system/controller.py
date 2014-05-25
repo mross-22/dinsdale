@@ -9,22 +9,23 @@ class Controller:
     def __init__(self, number):
         """ Initialize the controller """
         self.u = npm.zeros((2, 1))
-        self.w = np.matrix([]) # To be implemented 
+        self.g = np.matrix([]) # To be implemented
+        self.h = np.matrix([]) # To be implemented
         self.received = 0 # To be implemented
         self.y = np.matrix([])
         self.n = number # Node number
-        
+
         # ------------- Put your code here -------------
-        # 
+        #
         self.ref = [np.matrix("[10; 20]"),
                     np.matrix("[-10 10; -20 -20]"),
-                    np.matrix("[-10; 20]")]    
+                    np.matrix("[-10; 20]")]
         #
         # ----------------------------------------------
 
     def iterate_state(self):
         """ Update controller state """
-        
+
         # ------------- Put your code here -------------
         #
         z_i = self.y[:2, 0]
@@ -39,4 +40,4 @@ class Controller:
     def iterate_optimization(self):
         """ Iteration of the optimization problem """
         # To be implemented
-        pass  
+        pass

@@ -12,11 +12,11 @@ def main():
     loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
     path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")
     times = load_matrix_from_file(path)
-    T, T_final = times[1, 0], times[2, 0]
+    T_sampling, T, T_final = times[0, 0], times[1, 0], times[2, 0]
     r = rospy.Rate(1/T)
     i = 0
-    i_final = T_final/T
-    while not rospy.is_shutdown() or i >= i_final:
+    i_final = T_final/T_sampling
+    while (not rospy.is_shutdown()) and (i < i_final):
         pub_t.publish(i)
         i+= 1
         r.sleep()
