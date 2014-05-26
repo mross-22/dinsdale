@@ -1,9 +1,18 @@
 #!/usr/bin/env python
 
 
+"""
+Usage:
+  node_plant <node_number> <node_type>
+"""
+
+
 from __future__ import division
-import os
 import sys
+sys.dont_write_bytecode = True
+import os
+import docopt
+import importlib
 import numpy as np
 import rospy
 import rosbag
@@ -11,8 +20,7 @@ from rospy.numpy_msg import numpy_msg
 PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
 from dinsdale.msg import Floats
-from dinsdale_system.read_matrix import *
-from dinsdale_system.plant import *
+from dinsdale_system.tools.read_matrix import *
 
 
 # ----------------------------------------------------------------
@@ -22,7 +30,7 @@ class PlantNode:
     """ ROS wrapper for a Plant object """
 
 
-    def __init__(self, number):
+    def __init__(self, node_number, node_type):
         """ Initialize ROS node """
 
         # Setup publishers
@@ -31,23 +39,27 @@ class PlantNode:
 
         # Setup subscribers
         rospy.Subscriber('~w', numpy_msg(Floats), self.neighbour_data_received)
-        rospy.Subscriber('controller%s/u' % number, numpy_msg(Floats), self.control_input_received)
+        rospy.Subscriber('controller%s/u' % node_number, numpy_msg(Floats), self.control_input_received)
 
         # Initialize plant
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/x0.txt")
         x0 = load_matrix_from_file(path)
-        x0 = x0[number, :].T
+        x0 = x0[node_number, :].T
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/u0.txt")
         u0 = load_matrix_from_file(path)
-        u0 = u0[number, :].T
+        u0 = u0[node_number, :].T
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")
         T = load_matrix_from_file(path)
         T = T[0, 0]
-        self.plant = Plant(number, x0, u0, T)
+        module_name = 'dinsdale_system.plant'
+        if node_type != 0:
+            module_name += '_' + str(node_type)
+        plant_module = importlib.import_module(module_name)
+        self.plant = plant_module.Plant(node_number, x0, u0, T)
 
         # Open bag to log data
-        bag_name = 'plant_' + str(number) + '.bag'
+        bag_name = 'plant_' + str(node_number) + '.bag'
         dir_path = os.path.join(loc, 'bags')
         dir_list = os.listdir(dir_path)
         dir_list = filter(lambda x: os.path.isdir(os.path.join(dir_path, x)), dir_list)
@@ -56,7 +68,8 @@ class PlantNode:
         self.bag = rosbag.Bag(os.path.join(dir_path, newest_dir, bag_name), 'w')
 
         # Publish initial data to other plants
-        rospy.sleep(2)
+        while not rospy.get_param('/dinsdale/plants_topology_set'):
+            rospy.sleep(1)
         v = Floats()
         v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
         self.pub_v.publish(v.data)
@@ -75,7 +88,7 @@ class PlantNode:
 
         # Save data
         self.plant.w = np.mat(w.data).T
-        self.bag.write('plant%s/w' % (number), w)
+        self.bag.write('plant%s/w' % (node_number), w)
 
         # Update plant state
         self.plant.iterate_state()
@@ -91,14 +104,16 @@ class PlantNode:
 # ----------------------------------------------------------------
 
 
-def main(number):
+def main(arguments):
     """ Script entry point """
 
-    rospy.init_node('plant%s' % (number))
-    node = PlantNode(number)
+    node_number = int(arguments['<node_number>'])
+    node_type = int(arguments['<node_type>'])
+    rospy.init_node('plant%s' % (node_number))
+    node = PlantNode(node_number, node_type)
     rospy.spin()
 
 
 if __name__ == '__main__':
-    number = int(sys.argv[1])
-    main(number)
+    arguments = docopt.docopt(__doc__)
+    main(arguments)

@@ -2,17 +2,18 @@
 
 
 from __future__ import division
-import os
 import sys
+sys.dont_write_bytecode = True
+import os
 import numpy as np
 import numpy.matlib as npm
 import rospy
 from rospy.numpy_msg import numpy_msg
 PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
-from std_msgs.msg import Int64 
+from std_msgs.msg import Int64
 from dinsdale.msg import Floats
-from dinsdale_system.read_matrix import *
+from dinsdale_system.tools.read_matrix import *
 from dinsdale_system.plants_topology import *
 
 
@@ -21,10 +22,10 @@ from dinsdale_system.plants_topology import *
 
 class PlantsTopologyNode:
     """ ROS node that controls the plants communication topology """
-    
+
     def __init__(self, dynamic_topology):
         """ Initialize ROS node """
-        
+
         # Setup publishers and subscribers
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/A_plants.txt")
@@ -35,16 +36,19 @@ class PlantsTopologyNode:
             self.pub.append(rospy.Publisher('/plant%s/w' % i, numpy_msg(Floats)))
             rospy.Subscriber('/plant%s/v' % i, numpy_msg(Floats), self.plant_data_received, i)
         rospy.Subscriber('/simulation_time/tick', Int64, self.tack)
-            
+
         # Initialize network topology node
         if dynamic_topology:
             self.node = DynamicPlantsTopology(A)
         else:
             self.node = StaticPlantsTopology(A)
-    
+
+        # Start the other nodes
+        rospy.set_param('/dinsdale/plants_topology_set', True)
+
     def plant_data_received(self, w, i):
         """ Received data w from plant i """
-        
+
         # Save data
         if not self.node.w.size:
             self.node.w = npm.zeros((self.nodes, w.data.size))
@@ -52,10 +56,10 @@ class PlantsTopologyNode:
 
     def tack(self, t):
         """ Response to a tick, begin new iteration """
-        
+
         # Update topology if dynamic
         self.node.update_topology()
-        
+
         # Publish new data
         n = 0
         for neighbours in self.node.communication:
@@ -66,14 +70,14 @@ class PlantsTopologyNode:
                 count += self.node.w.shape[1]
             self.pub[n].publish(np.array(w_local, dtype = np.float32))
             n += 1
-        
-    
+
+
 # ----------------------------------------------------------------
 
 
 def main(dynamic_topology = False):
     """ Script entry point """
-    
+
     rospy.init_node('plants_topology')
     node = PlantsTopologyNode(dynamic_topology)
     rospy.spin()

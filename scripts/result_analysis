@@ -9,11 +9,12 @@ Usage:
 
 from __future__ import division
 import sys
+sys.dont_write_bytecode = True
 import os
 import numpy as np
 import rosbag
 import docopt
-from dinsdale_system.result_analysis import *
+from dinsdale_system.tools.result_analysis import *
 
 # ----------------------------------------------------------------
 

@@ -1,18 +1,25 @@
 #!/usr/bin/env python
 
 
+"""
+Usage:
+  node_controller <node_number> <node_type>
+"""
+
+
 from __future__ import division
-import os
 import sys
+sys.dont_write_bytecode = True
+import os
+import docopt
 import rospy
 import rosbag
-import time
+import importlib
 from rospy.numpy_msg import numpy_msg
 PKG = 'dinsdale'
 import roslib; roslib.load_manifest(PKG)
 from dinsdale.msg import Floats
-from dinsdale_system.read_matrix import *
-from dinsdale_system.controller import *
+from dinsdale_system.tools.read_matrix import *
 
 
 # ----------------------------------------------------------------
@@ -22,7 +29,7 @@ class ControllerNode:
     """ ROS wrapper for a Controller object """
 
 
-    def __init__(self, number):
+    def __init__(self, node_number, node_type):
         """ Initialize ROS node """
 
         # Setup publishers and subscribers
@@ -34,16 +41,20 @@ class ControllerNode:
             self.pub_v = rospy.Publisher('~g', numpy_msg(Floats))
             neighbours = [] # Maybe unnecessary
             for i in range(A.shape[1]):
-                if A[number, i] and number != i:
+                if A[node_number, i] and node_number != i:
                     neighbours.append(i) # Maybe unnecessary
                     rospy.Subscriber('controller%s/g' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
-        rospy.Subscriber('plant%s/y' % (number), numpy_msg(Floats), self.plant_output_received)
+        rospy.Subscriber('plant%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
 
         # Initialize controller
-        self.controller = Controller(number)
+        module_name = 'dinsdale_system.controller'
+        if node_type != 0:
+            module_name += '_' + str(node_type)
+        controller_module = importlib.import_module(module_name)
+        self.controller = controller_module.Controller(node_number)
 
         # Open bag to log data
-        bag_name = 'controller_' + str(number) + '.bag'
+        bag_name = 'controller_' + str(node_number) + '.bag'
         dir_path = os.path.join(loc, 'bags')
         dir_list = os.listdir(dir_path)
         dir_list = filter(lambda x: os.path.isdir(os.path.join(dir_path, x)), dir_list)
@@ -57,7 +68,7 @@ class ControllerNode:
 
         # Save data
         self.controller.y = np.mat(y.data).T
-        self.bag.write('plant%s/y' % (number), y)
+        self.bag.write('plant%s/y' % (node_number), y)
 
         # Update controller state
         self.controller.iterate_state()
@@ -66,7 +77,7 @@ class ControllerNode:
         floats = Floats()
         floats.data = np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size)
         self.pub_u.publish(floats.data)
-        self.bag.write('controller%s/u' % (number), floats)
+        self.bag.write('controller%s/u' % (node_number), floats)
 
 
     def neighbour_data_received(self, w, i):
@@ -77,14 +88,17 @@ class ControllerNode:
 # ----------------------------------------------------------------
 
 
-def main(number):
+def main(arguments):
     """ Script entry point """
 
-    rospy.init_node('controller%s' % (number))
-    node = ControllerNode(number)
+    node_number = int(arguments['<node_number>'])
+    node_type = int(arguments['<node_type>'])
+    rospy.init_node('controller%s' % (node_number))
+    node = ControllerNode(node_number, node_type)
     rospy.spin()
     node.bag.close()
 
+
 if __name__ == '__main__':
-    number = int(sys.argv[1])
-    main(number)
+    arguments = docopt.docopt(__doc__)
+    main(arguments)
