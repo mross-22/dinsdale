@@ -23,6 +23,7 @@ from dinsdale_system.plants_topology import *
 class PlantsTopologyNode:
     """ ROS node that controls the plants communication topology """
 
+
     def __init__(self, dynamic_topology):
         """ Initialize ROS node """
 
@@ -44,7 +45,10 @@ class PlantsTopologyNode:
             self.node = StaticPlantsTopology(A)
 
         # Start the other nodes
+        self.first_iteration = True
+        rospy.sleep(1)
         rospy.set_param('/dinsdale/plants_topology_set', True)
+
 
     def plant_data_received(self, w, i):
         """ Received data w from plant i """
@@ -54,6 +58,7 @@ class PlantsTopologyNode:
             self.node.w = npm.zeros((self.nodes, w.data.size))
         self.node.w[i, :] = w.data
 
+
     def tack(self, t):
         """ Response to a tick, begin new iteration """
 
@@ -61,15 +66,13 @@ class PlantsTopologyNode:
         self.node.update_topology()
 
         # Publish new data
-        n = 0
-        for neighbours in self.node.communication:
+        for n, neighbours in enumerate(self.node.communication):
             w_local = np.zeros(len(neighbours)*self.node.w.shape[1], dtype = np.float32)
             count = 0
             for j in neighbours:
                 w_local[count:(count + self.node.w.shape[1])] = self.node.w[j, :]
                 count += self.node.w.shape[1]
             self.pub[n].publish(np.array(w_local, dtype = np.float32))
-            n += 1
 
 
 # ----------------------------------------------------------------
@@ -85,7 +88,8 @@ def main(dynamic_topology = False):
 
 if __name__ == '__main__':
     try:
-        dynamic_topology = sys.argv[1]
+        arguments = rospy.myargv(argv = sys.argv)
+        dynamic_topology = arguments[1]
     except:
         dynamic_topology = False
     main(dynamic_topology)

@@ -11,7 +11,6 @@ from __future__ import division
 import sys
 sys.dont_write_bytecode = True
 import os
-import docopt
 import importlib
 import numpy as np
 import rospy
@@ -42,6 +41,7 @@ class PlantNode:
         rospy.Subscriber('controller%s/u' % node_number, numpy_msg(Floats), self.control_input_received)
 
         # Initialize plant
+        self.node_number = node_number
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/x0.txt")
         x0 = load_matrix_from_file(path)
@@ -70,10 +70,11 @@ class PlantNode:
         # Publish initial data to other plants
         while not rospy.get_param('/dinsdale/plants_topology_set'):
             rospy.sleep(1)
-        v = Floats()
-        v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
-        self.pub_v.publish(v.data)
-        self.bag.write('plant%s/v', v)
+        #v = numpy_msg(Floats())
+        #v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
+        #self.pub_v.publish(v.data)
+        #self.bag.write('plant%s/v' % (node_number), v)
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
 
 
     def control_input_received(self, u):
@@ -88,17 +89,18 @@ class PlantNode:
 
         # Save data
         self.plant.w = np.mat(w.data).T
-        self.bag.write('plant%s/w' % (node_number), w)
+        self.bag.write('plant%s/w' % (self.node_number), w)
 
         # Update plant state
         self.plant.iterate_state()
 
         # Publish new data
         self.pub_y.publish(np.reshape(np.array(self.plant.y, dtype = np.float32), self.plant.y.size))
-        v = Floats()
-        v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
-        self.pub_v.publish(v.data)
-        self.bag.write('plant%s/v', v)
+        #v = numpy_msg(Floats())
+        #v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
+        #self.pub_v.publish(v.data)
+        #self.bag.write('plant%s/v' % (node_number), v)
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
 
 
 # ----------------------------------------------------------------
@@ -107,13 +109,14 @@ class PlantNode:
 def main(arguments):
     """ Script entry point """
 
-    node_number = int(arguments['<node_number>'])
-    node_type = int(arguments['<node_type>'])
+    node_number = int(arguments[1])
+    node_type = int(arguments[2])
     rospy.init_node('plant%s' % (node_number))
     node = PlantNode(node_number, node_type)
     rospy.spin()
+    node.bag.close()
 
 
 if __name__ == '__main__':
-    arguments = docopt.docopt(__doc__)
+    arguments = rospy.myargv(argv = sys.argv)
     main(arguments)

@@ -10,6 +10,11 @@ from dinsdale_system.tools.read_matrix import *
 
 def main():
     rospy.init_node('simulation_time')
+    print
+    print "============================================="
+    print " It is wise to wait... "
+    print " Press Enter to start "
+    raw_input()
     pub_t = rospy.Publisher('~tick', Int64)
     loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
     path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")

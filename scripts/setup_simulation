@@ -4,6 +4,7 @@
 import sys
 sys.dont_write_bytecode = True
 import os
+import subprocess
 import time
 import rospy
 import xml.etree.ElementTree as ET
@@ -43,6 +44,13 @@ def make_launch_file(types, loc):
                           'args': '%s %s' % (i, system[0,1]),
                           })
 
+    # Add simulation_time node
+    add_node(launch, {'name': 'simulation_time',
+                      'pkg' : 'dinsdale',
+                      'type': 'node_simulation_time',
+                      'output': 'screen'
+                      })
+
     # Save xml file
     launch_xml = ET.ElementTree(launch)
     launch_xml.write(os.path.join(loc, 'simulation.launch'))
@@ -65,6 +73,8 @@ def main():
     path = os.path.join(loc, "src/dinsdale_system/input_parameters/system_types.txt")
     system_types = load_matrix_from_file(path)
     make_launch_file(system_types, loc)
+    rospy.sleep(1)
+    subprocess.call(["roslaunch", "dinsdale", "simulation.launch"])
 
 
 if __name__ == '__main__':

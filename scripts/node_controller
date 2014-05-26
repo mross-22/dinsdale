@@ -11,9 +11,9 @@ from __future__ import division
 import sys
 sys.dont_write_bytecode = True
 import os
-import docopt
 import rospy
 import rosbag
+import numpy as np
 import importlib
 from rospy.numpy_msg import numpy_msg
 PKG = 'dinsdale'
@@ -47,6 +47,7 @@ class ControllerNode:
         rospy.Subscriber('plant%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
 
         # Initialize controller
+        self.node_number = node_number
         module_name = 'dinsdale_system.controller'
         if node_type != 0:
             module_name += '_' + str(node_type)
@@ -68,7 +69,7 @@ class ControllerNode:
 
         # Save data
         self.controller.y = np.mat(y.data).T
-        self.bag.write('plant%s/y' % (node_number), y)
+        self.bag.write('plant%s/y' % (self.node_number), y)
 
         # Update controller state
         self.controller.iterate_state()
@@ -77,7 +78,8 @@ class ControllerNode:
         floats = Floats()
         floats.data = np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size)
         self.pub_u.publish(floats.data)
-        self.bag.write('controller%s/u' % (node_number), floats)
+        self.bag.write('controller%s/u' % (self.node_number), floats)
+        #self.pub_u.publish(np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size))
 
 
     def neighbour_data_received(self, w, i):
@@ -91,8 +93,8 @@ class ControllerNode:
 def main(arguments):
     """ Script entry point """
 
-    node_number = int(arguments['<node_number>'])
-    node_type = int(arguments['<node_type>'])
+    node_number = int(arguments[1])
+    node_type = int(arguments[2])
     rospy.init_node('controller%s' % (node_number))
     node = ControllerNode(node_number, node_type)
     rospy.spin()
@@ -100,5 +102,5 @@ def main(arguments):
 
 
 if __name__ == '__main__':
-    arguments = docopt.docopt(__doc__)
+    arguments = rospy.myargv(argv = sys.argv)
     main(arguments)
