@@ -1,0 +1,3 @@
+<launch>
+    <node name="setup_simulation" pkg="dinsdale" type="setup_simulation" />
+</launch>

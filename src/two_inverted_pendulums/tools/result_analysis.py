@@ -21,13 +21,11 @@ class ResultAnalysis:
         self.data['h'] = [[] for i in xrange(number)]
 
     def analyze(self):
+        t = np.arange(0, 10, .1)
         p0 = np.array([x[0:2] for x in self.data['y'][0]])
         p1 = np.array([x[0:2] for x in self.data['y'][1]])
-        p2 = np.array([x[0:2] for x in self.data['y'][2]])
-        plt.plot(p0[:, 0], p0[:, 1], label = 'plant 0')
-        plt.plot(p1[:, 0], p1[:, 1], label = 'plant 1')
-        plt.plot(p2[:, 0], p2[:, 1], label = 'plant 2')
+        plt.plot(t, p0[:, 0], label = 'plant 0')
+        plt.plot(t, p1[:, 0], label = 'plant 1')
         plt.legend()
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
+        plt.xlabel('t [s]')
         plt.show()

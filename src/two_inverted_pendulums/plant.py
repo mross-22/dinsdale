@@ -18,18 +18,24 @@ class Plant:
 
         # ------------- Put your code here -------------
         #
-        
+        self.A = np.matrix([[1, T],
+                            [T, 1]])
+        self.B = np.matrix([[0, T]]).T
+        self.H_this = np.matrix([[0, 0],
+                                 [-T, 0]])
+        self.H_other = np.matrix([[0, 0],
+                                  [T, 0]])
         #
         # ----------------------------------------------
 
     def iterate_state(self):
         """ Update the plant state """
-        
+
         # ------------- Put your code here -------------
         #
-        self.x = self.x + self.u*self.T
-        self.y = np.concatenate((self.x, self.w))
+        e = np.random.rand()
+        self.x = self.A*self.x + self.B*self.u + self.H_this*self.x + self.H_other*self.w
+        self.y = self.x
         self.v = self.x
-
         #
         # ----------------------------------------------

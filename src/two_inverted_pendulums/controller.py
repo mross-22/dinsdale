@@ -17,9 +17,7 @@ class Controller:
 
         # ------------- Put your code here -------------
         #
-        self.ref = [np.matrix("[10; 20]"),
-                    np.matrix("[-10 10; -20 -20]"),
-                    np.matrix("[-10; 20]")]
+        self.K = np.matrix('-3.008 -3.0032')
         #
         # ----------------------------------------------
 
@@ -28,12 +26,7 @@ class Controller:
 
         # ------------- Put your code here -------------
         #
-        z_i = self.y[:2, 0]
-        z_j = self.y[2:, 0].reshape((self.y[2:, 0].size/2,2)).T
-        u = npm.zeros((2, 1))
-        for i in xrange(z_j.shape[1]):
-            u += z_j[:, i] - z_i - self.ref[self.n][:, i]
-        self.u = u
+        self.u = self.K*self.y
         #
         # ----------------------------------------------
 
