@@ -45,7 +45,6 @@ class PlantsTopologyNode:
             self.node = StaticPlantsTopology(A)
 
         # Start the other nodes
-        self.first_iteration = True
         rospy.sleep(1)
         rospy.set_param('/dinsdale/plants_topology_set', True)
 
@@ -54,9 +53,7 @@ class PlantsTopologyNode:
         """ Received data w from plant i """
 
         # Save data
-        if not self.node.w.size:
-            self.node.w = npm.zeros((self.nodes, w.data.size))
-        self.node.w[i, :] = w.data
+        self.node.w[i] = w.data
 
 
     def tack(self, t):
@@ -67,11 +64,11 @@ class PlantsTopologyNode:
 
         # Publish new data
         for n, neighbours in enumerate(self.node.communication):
-            w_local = np.zeros(len(neighbours)*self.node.w.shape[1], dtype = np.float32)
-            count = 0
+            #w_local = np.zeros(len(neighbours)*self.node.w.shape[1], dtype = np.float32)
+            #count = 0
+            w_local = np.array([], dtype = np.float32)
             for j in neighbours:
-                w_local[count:(count + self.node.w.shape[1])] = self.node.w[j, :]
-                count += self.node.w.shape[1]
+                w_local = np.append(w_local, self.node.w[j])
             self.pub[n].publish(np.array(w_local, dtype = np.float32))
 
 

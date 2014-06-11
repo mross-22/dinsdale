@@ -75,7 +75,8 @@ class PlantNode:
         #self.pub_v.publish(v.data)
         #self.bag.write('plant%s/v' % (node_number), v)
         self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
-
+        rospy.sleep(1)
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
 
     def control_input_received(self, u):
         """ Control input u is received """

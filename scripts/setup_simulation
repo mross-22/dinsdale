@@ -48,7 +48,7 @@ def make_launch_file(types, loc):
     add_node(launch, {'name': 'simulation_time',
                       'pkg' : 'dinsdale',
                       'type': 'node_simulation_time',
-                      'output': 'screen'
+                      'output': 'screen',
                       })
 
     # Save xml file
