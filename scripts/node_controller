@@ -39,10 +39,8 @@ class ControllerNode:
         A = load_matrix_from_file(path)
         if A.size:
             self.pub_v = rospy.Publisher('~g', numpy_msg(Floats))
-            neighbours = [] # Maybe unnecessary
             for i in range(A.shape[1]):
                 if A[node_number, i] and node_number != i:
-                    neighbours.append(i) # Maybe unnecessary
                     rospy.Subscriber('controller%s/g' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
         rospy.Subscriber('plant%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
 
@@ -79,10 +77,9 @@ class ControllerNode:
         floats.data = np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size)
         self.pub_u.publish(floats.data)
         self.bag.write('controller%s/u' % (self.node_number), floats)
-        #self.pub_u.publish(np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size))
 
 
-    def neighbour_data_received(self, w, i):
+    def neighbour_data_received(self, z, i):
         """ Data z is received from controller i """
         pass
 

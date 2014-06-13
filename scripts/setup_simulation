@@ -61,7 +61,7 @@ def make_dir(loc):
 
     time_id = time.strftime('%y%m%d_%H%M%S', time.localtime())
     dir_name = time_id + '_dinsdale'
-    os.mkdir(os.path.join(loc, 'bags', dir_name))
+    os.makedirs(os.path.join(loc, 'bags', dir_name))
 
 
 def main():
