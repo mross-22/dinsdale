@@ -34,7 +34,7 @@ class PlantNode:
 
         # Setup publishers
         self.pub_v = rospy.Publisher('~v', numpy_msg(Floats))
-        self.pub_y = rospy.Publisher('~y', numpy_msg(Floats))
+        self.pub_y = rospy.Publisher('controller%s/y' % node_number, numpy_msg(Floats))
 
         # Setup subscribers
         rospy.Subscriber('~w', numpy_msg(Floats), self.neighbour_data_received)

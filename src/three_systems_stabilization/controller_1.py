@@ -6,14 +6,14 @@ import numpy.matlib as npm
 
 class Controller:
 
-    def __init__(self, number):
+    def __init__(self, number, T):
         """ Initialize the controller """
         self.u = 0
-        self.g = np.matrix([]) # To be implemented
-        self.h = np.matrix([]) # To be implemented
-        self.received = 0 # To be implemented
+        self.p = np.matrix([])
+        self.q = np.matrix([])
         self.y = np.matrix([])
         self.n = number # Node number
+        self.T = T
 
         # ------------- Put your code here -------------
         #

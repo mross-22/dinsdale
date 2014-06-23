@@ -37,12 +37,17 @@ class ControllerNode:
         loc, f = os.path.split(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/A_controllers.txt")
         A = load_matrix_from_file(path)
+        self.is_communicating = False
         if A.size:
-            self.pub_v = rospy.Publisher('~g', numpy_msg(Floats))
-            for i in range(A.shape[1]):
+            self.is_communicating = True
+            self.pub_p = rospy.Publisher('~p', numpy_msg(Floats))
+            self.neighbours = []
+            for i in xrange(A.shape[1]):
                 if A[node_number, i] and node_number != i:
-                    rospy.Subscriber('controller%s/g' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
-        rospy.Subscriber('plant%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
+                    rospy.Subscriber('controller%s/p' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
+                    self.neighbours.append(i)
+            self.q = {}
+        rospy.Subscriber('controller%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
 
         # Initialize controller
         self.node_number = node_number
@@ -50,7 +55,10 @@ class ControllerNode:
         if node_type != 0:
             module_name += '_' + str(node_type)
         controller_module = importlib.import_module(module_name)
-        self.controller = controller_module.Controller(node_number)
+        path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")
+        T = load_matrix_from_file(path)
+        T = T[0, 0]
+        self.controller = controller_module.Controller(node_number, T)
 
         # Open bag to log data
         bag_name = 'controller_' + str(node_number) + '.bag'
@@ -65,9 +73,17 @@ class ControllerNode:
     def plant_output_received(self, y):
         """ Plant output y is received """
 
+        # Create vector q from received controller data
+        if self.is_communicating:
+            q_temp = [self.q[i] for i in sorted(self.q)]
+            q = np.array([])
+            for vector in q_temp:
+                q = np.append(q, vector)
+            self.controller.q = np.matrix(q)
+
         # Save data
         self.controller.y = np.mat(y.data).T
-        self.bag.write('plant%s/y' % (self.node_number), y)
+        self.bag.write('controller%s/y' % (self.node_number), y)
 
         # Update controller state
         self.controller.iterate_state()
@@ -77,11 +93,14 @@ class ControllerNode:
         floats.data = np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size)
         self.pub_u.publish(floats.data)
         self.bag.write('controller%s/u' % (self.node_number), floats)
+        if self.is_communicating:
+            self.pub_p.publish(np.reshape(np.array(self.controller.p, dtype = np.float32), self.controller.p.size))
 
 
-    def neighbour_data_received(self, z, i):
-        """ Data z is received from controller i """
-        pass
+    def neighbour_data_received(self, q, i):
+        """ Data q is received from controller i """
+
+        self.q[i] = q.data
 
 
 # ----------------------------------------------------------------
