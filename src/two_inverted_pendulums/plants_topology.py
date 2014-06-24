@@ -12,7 +12,7 @@ class PlantsTopology:
         
         self.A = A # Adjacency matrix
         self.nodes = self.A.shape[0] # Total number of nodes
-        self.w = np.array([]) # Data from plants
+        self.w = [np.array([], dtype = np.float32) for i in xrange(self.nodes)] # Data from plants
         self.communication = [[] for i in xrange(self.nodes)] # Communication graph
     
     def update_topology(self):
