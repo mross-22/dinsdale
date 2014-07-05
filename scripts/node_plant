@@ -84,6 +84,12 @@ class PlantNode:
         # Save data
         self.plant.u = np.mat(u.data).T
 
+        # Update plant state
+        self.plant.iterate_state()
+
+        # Publish new data
+        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
+
 
     def neighbour_data_received(self, w):
         """ Data w is received from neighbour plants """
@@ -92,8 +98,8 @@ class PlantNode:
         self.plant.w = np.mat(w.data).T
         self.bag.write('plant%s/w' % (self.node_number), w)
 
-        # Update plant state
-        self.plant.iterate_state()
+        # Update plant output
+        self.plant.update_output()
 
         # Publish new data
         self.pub_y.publish(np.reshape(np.array(self.plant.y, dtype = np.float32), self.plant.y.size))
@@ -101,7 +107,6 @@ class PlantNode:
         #v.data = np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size)
         #self.pub_v.publish(v.data)
         #self.bag.write('plant%s/v' % (node_number), v)
-        self.pub_v.publish(np.reshape(np.array(self.plant.v, dtype = np.float32), self.plant.v.size))
 
 
 # ----------------------------------------------------------------

@@ -38,13 +38,22 @@ class ControllerNode:
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/A_controllers.txt")
         A = load_matrix_from_file(path)
         self.is_communicating = False
+        self.is_communication_iterative = False
+        self.is_solving_optimisation = True
         if A.size:
             self.is_communicating = True
             self.pub_p = rospy.Publisher('~p', numpy_msg(Floats))
+            path = os.path.join(loc, "src/dinsdale_system/input_parameters/controllers_iterative.txt")
+            iterative = load_matrix_from_file(path)
+            self.is_communication_iterative = iterative[0,0]
+            if iterative:
+                self.pub_r = rospy.Publisher('~r', numpy_msg(Floats))
             self.neighbours = []
             for i in xrange(A.shape[1]):
                 if A[node_number, i] and node_number != i:
                     rospy.Subscriber('controller%s/p' % (i), numpy_msg(Floats), self.neighbour_data_received, i)
+                    if iterative:
+                        rospy.Subscriber('controller%s/r' % (i), numpy_msg(Floats), self.optimisation_data_received)
                     self.neighbours.append(i)
             self.q = {}
         rospy.Subscriber('controller%s/y' % (node_number), numpy_msg(Floats), self.plant_output_received)
@@ -88,19 +97,63 @@ class ControllerNode:
         # Update controller state
         self.controller.iterate_state()
 
+        # Publish new data or start optimisation
+        if not self.is_communication_iterative:
+            self.publish_output()
+        else:
+            self.is_solving_optimisation = False
+            s = Floats()
+            s.data = np.array([], dtype=np.float32)
+            self.optimisation_data_received(s)
+
+
+    def neighbour_data_received(self, q, i):
+        """ Data q is received from controller i """
+
+        # Save data
+        self.q[i] = q.data
+
+
+    def optimisation_data_received(self, s):
+        """ Optimisation data s is received from neighbour """
+
+        # Wait for last iteration to finish
+        while self.is_solving_optimisation:
+            rospy.sleep(.005)
+
+        self.is_solving_optimisation = True
+
+        # Stop if optimisation is finished
+        if self.controller.finished:
+            return
+
+        # Save data and start a new iteration
+        self.controller.s = np.matrix(s.data).T
+        self.controller.iterate_optimisation()
+
+        # Publish optimisation data
+        r = Floats()
+        r.data = np.reshape(np.array(self.controller.r, dtype = np.float32), self.controller.r.size)
+        self.pub_r.publish(r.data)
+
         # Publish new data
+        if self.controller.finished:
+            self.publish_output()
+            return
+
+        # Allow next iteration
+        self.is_solving_optimisation = False
+
+
+    def publish_output(self):
+        """ Publish new data """
+
         floats = Floats()
         floats.data = np.reshape(np.array(self.controller.u, dtype = np.float32), self.controller.u.size)
         self.pub_u.publish(floats.data)
         self.bag.write('controller%s/u' % (self.node_number), floats)
         if self.is_communicating:
             self.pub_p.publish(np.reshape(np.array(self.controller.p, dtype = np.float32), self.controller.p.size))
-
-
-    def neighbour_data_received(self, q, i):
-        """ Data q is received from controller i """
-
-        self.q[i] = q.data
 
 
 # ----------------------------------------------------------------
