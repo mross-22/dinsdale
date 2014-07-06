@@ -46,9 +46,9 @@ class PlantNode:
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/x0.txt")
         x0 = load_matrix_from_file(path)
         x0 = x0[node_number, :].T
-        path = os.path.join(loc, "src/dinsdale_system/input_parameters/u0.txt")
-        u0 = load_matrix_from_file(path)
-        u0 = u0[node_number, :].T
+        #path = os.path.join(loc, "src/dinsdale_system/input_parameters/u0.txt")
+        #u0 = load_matrix_from_file(path)
+        #u0 = u0[node_number, :].T
         path = os.path.join(loc, "src/dinsdale_system/input_parameters/T.txt")
         T = load_matrix_from_file(path)
         T = T[0, 0]
@@ -56,7 +56,7 @@ class PlantNode:
         if node_type != 0:
             module_name += '_' + str(node_type)
         plant_module = importlib.import_module(module_name)
-        self.plant = plant_module.Plant(node_number, x0, u0, T)
+        self.plant = plant_module.Plant(node_number, x0, T)
 
         # Open bag to log data
         bag_name = 'plant_' + str(node_number) + '.bag'
