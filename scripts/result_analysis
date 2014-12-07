@@ -20,10 +20,10 @@ from dinsdale_system.tools.result_analysis import *
 
 
 class BagAnalysis:
-    """ Extracts data to plot from ROS bag """
+    """ Extracts data to analyse from a ROS bag """
 
     def __init__(self, path):
-        """ Extract data and initialize Plot object """
+        """ Extract data and initialise ResultAnalysis object """
 
         # Find all bag files
         file_list = os.listdir(path)
@@ -40,9 +40,9 @@ class BagAnalysis:
                     self.analysis.data[topic[-1]][number].append(msg.data)
 
 
-    def analyze(self):
+    def analyse(self):
         """ Start data analysis """
-        self.analysis.analyze()
+        self.analysis.analyse()
 
 # ----------------------------------------------------------------
 
@@ -57,7 +57,7 @@ def main(path = None):
         newest_dir = dir_list[0]
         path = os.path.join(dir_path, newest_dir)
     bagPlot = BagAnalysis(path)
-    bagPlot.analyze()
+    bagPlot.analyse()
 
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
